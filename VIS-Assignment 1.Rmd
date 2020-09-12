@@ -1,0 +1,321 @@
+---
+title: "VIS-Assignment 1"
+author: "Kristy Henrich"
+date: "9/9/2020"
+output: html_document
+---
+
+Intro code??
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load libraries
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(tidycensus)
+library(ggthemes)
+```
+
+## Select variables
+
+After reviewing the ACS 5 year survey, I selected the following eight variables to conduct a tract-level analysis in Hawaii (HI) examining means of transportation to work.
+  1. Majority foreign or native-born population (categorical)
+  2. Majority race/ethnicity (categorical)
+  3. Majority mode of transport to work (categorical)
+  4. Total population (continuous)
+  5. Median age (continuous)
+  6. Median income (continuous)
+  
+  (I had already created a new dataset before learning I could use my quant one, so I still decided to check out HI tracts.)
+  
+Plots 3, 6, and 8-10 draw code and inspiration from Taelor's assignment. Plots 1-5, 7, and 10 draw code and inspiration from Carole's assignment.
+
+```{r}
+area_vars_2018 <- load_variables(2018, "acs5")
+```
+
+```{r}
+vars <- c("B25001_001",
+          "B01002_001",
+          "B06011_001",
+          "B01003_001",
+          "B03002_003",
+          "B03002_004",
+          "B03002_006",
+          "B03002_012",
+          "B08006_001",
+          "B08006_002",
+          "B08006_008",
+          "B08006_014",
+          "B08006_015",
+          "B08006_016",
+          "B08006_017",
+          "B05002_001",
+          "B05002_002",
+          "B05002_013")
+```
+
+## Develop table
+Using my variable selections, I created a HI_tracts table. I looked to Taelor's code to massage my race and ethnicity data and applied the same structure for other modifications I needed to make to put together the table.
+
+```{r}
+HI_tracts <- get_acs(geography = "tract", variables = vars,
+                           state = "HI", output = "wide") %>%
+  rename(tot_hh = "B25001_001E",
+                    med_age = "B01002_001E",
+                    med_income = "B06011_001E",
+                    tot_pop = "B01003_001E",
+                    nh_white_pop = "B03002_003E",
+                    nh_black_pop = "B03002_004E",
+                    nh_asian_pop = "B03002_006E",
+                    hispanic_pop = "B03002_012E",
+                    total_transport = "B08006_001E",
+                    transport_car = "B08006_002E",
+                    transport_public = "B08006_008E",
+                    transport_bicycle = "B08006_014E",
+                    transport_walked = "B08006_015E",
+                    transport_taxi = "B08006_016E",
+                    transport_wfh = "B08006_017E",
+                    total_birth = "B05002_001E",
+                    birth_native = "B05002_002E",
+                    birth_foreign = "B05002_013E") %>%
+              mutate(birth_native_foreign = case_when(
+                     birth_native / total_birth > 0.5 ~ "native_born",
+                     birth_foreign / total_birth > 0.5 ~ "foreign_born",
+                     TRUE ~ "None"),
+                    majority_race_eth = case_when(
+                     nh_white_pop / tot_pop > 0.5 ~ "nh_white",
+                     nh_black_pop / tot_pop > 0.5 ~ "nh_black",
+                     nh_asian_pop / tot_pop > 0.5 ~ "nh_asian",
+                     hispanic_pop / tot_pop > 0.5 ~ "hispanic",
+                    (nh_white_pop + nh_black_pop + nh_asian_pop + hispanic_pop) / tot_pop < 0.5 ~ "other",
+                     TRUE ~ "None"),
+                    majority_transport = case_when(
+                     transport_car / total_transport > 0.5 ~ "car",
+                     transport_public / total_transport > 0.5 ~ "pub_trans",
+                     transport_bicycle / total_transport > 0.5 ~ "bicycle",
+                     transport_walked / total_transport > 0.5 ~ "walked",
+                     transport_taxi / total_transport > 0.5 ~ "taxi",
+                     transport_wfh / total_transport > 0.5 ~ "wfh",
+                     TRUE ~ "None")) %>%
+            filter(tot_pop > 0, tot_hh > 0) %>%
+            select(GEOID, birth_native_foreign, majority_race_eth, majority_transport, tot_pop, med_age, med_income)
+          
+```
+
+## Plot 1
+Plot 1 shows a scatter plot of the median age by median income within a tract using color to denote the majority mode of transport to work taken by its residents. 
+
+```{r}
+ggplot(HI_tracts, 
+       aes(x = med_age,
+           y = med_income,
+           color = majority_transport)) +
+  geom_point() +
+  scale_x_continuous(name = "Median age",
+                     breaks = seq(0, 80, by = 10))+
+  scale_y_continuous(labels = scales::comma,
+                     name = "Median income",
+                     breaks = seq(0, 80000, by = 10000)) +
+  scale_color_discrete(name = "Majority mode of transport to work",
+                       labels = c("Car",
+                                   "No data",
+                                   "Walked")) +
+  theme_bw() 
+```
+
+## Plot 2
+Plot 2 shows race/ethnicity trends by tract plotted by the median income and total population of that tract as a scatter plot. 
+
+```{r}
+ggplot(HI_tracts, 
+       aes(x = med_income,
+           y = tot_pop,
+           color = majority_race_eth,
+           fill = majority_race_eth)) +
+  geom_point() +
+  stat_smooth(method = "lm") +
+  scale_x_continuous(labels = scales::comma,
+                     name = "Median income",
+                     breaks = seq(0, 80000, by = 20000)) +
+  scale_y_continuous(labels = scales::comma,
+                     name = "Total tract population") +
+  scale_color_discrete(name = "Majority race/ethnicity",
+                       labels = c("Non-Hispanic Asian",
+                                  "Non-Hispanic white",
+                                  "No majority",
+                                  "Other race/ethnicity" )) +
+  scale_fill_discrete(name = "Majority race/ethnicity",
+                       labels = c("Non-Hispanic Asian",
+                                  "Non-Hispanic white",
+                                  "No majority",
+                                  "Other race/ethnicity" )) +
+  theme_bw() 
+```
+## Plot 3
+Plot 3 shows a violin plot of the majority race/ethnicity vs. median age within the tract. 
+
+```{r}
+ggplot(HI_tracts, 
+       aes(x = majority_race_eth,
+           y = med_age,
+           color = majority_race_eth)) +
+  geom_violin() +
+  scale_x_discrete(name = "Majority race/ethnicity",
+                       labels = c("Non-Hispanic Asian",
+                                  "Non-Hispanic white",
+                                  "No majority",
+                                  "Other race/ethnicity")) +
+  scale_y_continuous(name = "Median age",
+                     breaks = seq(10, 80, by = 10)) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## Plot 4
+Plot 4 shows a stacked bar chart of the number of tracts by majority race/ethnicity that have a majority foreign vs. native born population.
+
+```{r}
+ggplot(HI_tracts, aes(x = majority_race_eth, fill = birth_native_foreign)) +
+  geom_bar() +
+  scale_y_continuous(name = "Number of tracts") +
+  scale_x_discrete(name = "Majority race/ethnicity",
+                       labels = c("NH Asian",
+                                  "NH white",
+                                  "No majority",
+                                  "Other")) +
+  scale_fill_discrete(name = element_blank(),
+                        labels = c("Foreign-born",
+                                   "Native-born")) +
+  theme_bw() 
+```
+
+## Plot 5
+Plot 5 shows a box plot of the median age in tracts broken out by a tract's population being majority native vs. foreign-born
+
+```{r}
+ggplot(HI_tracts, 
+       aes(x = birth_native_foreign,
+           y = med_age,
+           color = birth_native_foreign)) +
+  geom_boxplot() +
+  scale_x_discrete(name = "Majority foreign vs. native-born",
+                       labels = c("Foreign-born",
+                                  "Native-born")) +
+  scale_y_continuous(name = "Median age",
+                     breaks = seq(10, 80, by = 10)) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## Plot 6
+Plot 6 shows a heat map of median income and mode of transit by the tract's total population.
+
+```{r}
+ggplot(HI_tracts, 
+       aes(x = majority_transport, 
+           y = majority_race_eth, 
+           fill = tot_pop)) +
+       geom_tile() +
+      scale_x_discrete(name = "Majority mode of transport to work",
+                       labels = c("Car",
+                                  "No data",
+                                  "Walked")) +
+      scale_y_discrete(name = "Majority race/ethnicity",
+                       labels = c("NH Asian",
+                                  "NH white",
+                                  "No majority",
+                                  "Other")) +
+      scale_fill_distiller(palette = "GnBu") +
+      labs(fill = "Total population") + 
+      theme_minimal()
+```      
+
+## Plot 7
+Plot 7 shows a scatter plot on the polar coordinate system of median income vs. total population within a tract.
+
+```{r}
+ggplot(HI_tracts, 
+       aes(x = med_income,
+           y = tot_pop)) +
+  geom_point(alpha = 0.5, size = 0.5) +
+  stat_smooth(color = "black", linetype = 1, size = 0.5) +
+  scale_x_continuous(labels = scales::comma,
+                     name = "Median income",
+                     breaks = seq(0, 80000, by = 10000)) +
+  scale_y_continuous(name = "Tract population",
+                     trans = "log",
+                     breaks = c(10, 100, 1000, 10000),
+                     labels = c("10", "100", "1,000", "10,000")) +
+  coord_polar(theta = "x") +
+  theme_economist() 
+```      
+
+## Plot 8
+
+Plot 8 shows an area chart of percent of the median age within a tract.
+
+```{r}
+ggplot(HI_tracts, 
+       aes(x=med_age)) +
+  geom_density(fill="gray", color="gray", alpha=0.8) +
+  scale_x_continuous(name = "Median age",
+                     breaks = seq(0, 80, by = 10)) +
+  theme_economist_white()
+```
+
+#Plot 9
+Plot 9 shows a dot plot of whether a tract's population is primarily native vs. foreign born by the total population of the tract
+
+```{r}
+ ggplot(HI_tracts, aes(x = factor(birth_native_foreign), y = tot_pop, fill = factor(birth_native_foreign))) +
+    geom_dotplot(binaxis = "y", dotsize = 0.5) + 
+    scale_y_continuous(labels = scales::comma,
+                       name = "Total tract population", 
+                       breaks = seq(0, 13000, by = 1000)) + 
+    scale_x_discrete(name = "Majority foreign vs. native born",
+                       labels = c("Foreign born",
+                                  "Native born")) + 
+    labs(fill = "Majority foreign vs. native born") +
+    scale_fill_discrete(name = "Majority foreign vs. native born",
+                       breaks=c("foreign born", "native born"),
+                         labels=c("Foreign born", "native born"))+
+  theme_tufte()
+```
+
+#Plot 10
+For my last plot, I decided to try plotting all of my variables to see what happened.
+
+```{r}
+ggplot(HI_tracts, 
+       aes(x = med_income,
+           y = med_age,
+           size = tot_pop,
+           shape = majority_transport,
+           color = birth_native_foreign,
+           alpha = majority_race_eth)) +
+  geom_point() +
+  scale_size_continuous(labels = scales::comma,
+                        name = "Tract population") +
+  scale_x_continuous(labels = scales::comma,
+                     name = "Median income",
+                     breaks = seq(0, 80000, by = 20000))+
+  scale_y_continuous(name = "Median age",
+                     breaks = seq(10, 80, by = 10)) +
+  scale_color_discrete(name = "Majority foreign vs. native born",
+                       labels = c("Foreign born",
+                                  "Native born")) +
+  scale_alpha_discrete(name = "Majority race/ethnicity",
+                         labels = "NH Asian",
+                                  "NH white",
+                                  "No majority",
+                                  "Other") +
+  scale_shape(name = "Majority mode of transport to work", 
+              labels = c("Car", "No data", "Walked")) +
+  theme_minimal() +
+  theme(legend.key.size = unit(0.1, "cm"))
+```
+
