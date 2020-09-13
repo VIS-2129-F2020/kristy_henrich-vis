@@ -5,7 +5,6 @@ date: "9/9/2020"
 output: html_document
 ---
 
-Intro code??
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -109,7 +108,7 @@ HI_tracts <- get_acs(geography = "tract", variables = vars,
 ## Plot 1
 Plot 1 shows a scatter plot of the median age by median income within a tract using color to denote the majority mode of transport to work taken by its residents. 
 
-```{r}
+```{r, warning=FALSE}
 ggplot(HI_tracts, 
        aes(x = med_age,
            y = med_income,
@@ -130,7 +129,7 @@ ggplot(HI_tracts,
 ## Plot 2
 Plot 2 shows race/ethnicity trends by tract plotted by the median income and total population of that tract as a scatter plot. 
 
-```{r}
+```{r, warning=FALSE}
 ggplot(HI_tracts, 
        aes(x = med_income,
            y = tot_pop,
@@ -158,7 +157,7 @@ ggplot(HI_tracts,
 ## Plot 3
 Plot 3 shows a violin plot of the majority race/ethnicity vs. median age within the tract. 
 
-```{r}
+```{r, warning=FALSE}
 ggplot(HI_tracts, 
        aes(x = majority_race_eth,
            y = med_age,
@@ -178,7 +177,7 @@ ggplot(HI_tracts,
 ## Plot 4
 Plot 4 shows a stacked bar chart of the number of tracts by majority race/ethnicity that have a majority foreign vs. native born population.
 
-```{r}
+```{r, warning=FALSE}
 ggplot(HI_tracts, aes(x = majority_race_eth, fill = birth_native_foreign)) +
   geom_bar() +
   scale_y_continuous(name = "Number of tracts") +
@@ -196,7 +195,7 @@ ggplot(HI_tracts, aes(x = majority_race_eth, fill = birth_native_foreign)) +
 ## Plot 5
 Plot 5 shows a box plot of the median age in tracts broken out by a tract's population being majority native vs. foreign-born
 
-```{r}
+```{r, warning=FALSE}
 ggplot(HI_tracts, 
        aes(x = birth_native_foreign,
            y = med_age,
@@ -214,7 +213,7 @@ ggplot(HI_tracts,
 ## Plot 6
 Plot 6 shows a heat map of median income and mode of transit by the tract's total population.
 
-```{r}
+```{r, warning=FALSE}
 ggplot(HI_tracts, 
        aes(x = majority_transport, 
            y = majority_race_eth, 
@@ -237,7 +236,7 @@ ggplot(HI_tracts,
 ## Plot 7
 Plot 7 shows a scatter plot on the polar coordinate system of median income vs. total population within a tract.
 
-```{r}
+```{r, warning=FALSE}
 ggplot(HI_tracts, 
        aes(x = med_income,
            y = tot_pop)) +
@@ -258,7 +257,7 @@ ggplot(HI_tracts,
 
 Plot 8 shows an area chart of percent of the median age within a tract.
 
-```{r}
+```{r, warning=FALSE}
 ggplot(HI_tracts, 
        aes(x=med_age)) +
   geom_density(fill="gray", color="gray", alpha=0.8) +
@@ -270,7 +269,7 @@ ggplot(HI_tracts,
 #Plot 9
 Plot 9 shows a dot plot of whether a tract's population is primarily native vs. foreign born by the total population of the tract
 
-```{r}
+```{r, warning=FALSE}
  ggplot(HI_tracts, aes(x = factor(birth_native_foreign), y = tot_pop, fill = factor(birth_native_foreign))) +
     geom_dotplot(binaxis = "y", dotsize = 0.5) + 
     scale_y_continuous(labels = scales::comma,
@@ -289,7 +288,7 @@ Plot 9 shows a dot plot of whether a tract's population is primarily native vs. 
 #Plot 10
 For my last plot, I decided to try plotting all of my variables to see what happened.
 
-```{r}
+```{r, warning=FALSE}
 ggplot(HI_tracts, 
        aes(x = med_income,
            y = med_age,
