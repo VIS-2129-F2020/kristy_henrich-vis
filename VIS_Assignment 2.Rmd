@@ -1,0 +1,162 @@
+---
+title: "VIS Assignment 2"
+author: "Kristy Henrich"
+date: "9/18/2020"
+output: 
+  html_document:
+    theme: lumen
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load libraries
+For this assignment, I relied heavily on Carole's tutorial and Taelor's assignment. I would like to be able to include country name labels on my maps to improve legibility, so I look forward to asking classmates for help on Monday. I also need to reposition one of my legends and would like help with this too
+
+```{r load libaries, results = FALSE, warning = FALSE}
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(rgeos)
+library(tidyverse)
+library(ggspatial)
+library(cartogram)
+library(ggthemes)
+```
+
+## South America equirectangular projection
+```{r, results = FALSE, warning = FALSE}
+sa_countries <- ne_countries(scale = 50, returnclass = "sf") %>%
+  filter(continent == "South America")
+
+sa_map <- ggplot(sa_countries) +
+  geom_sf() +
+  xlab("Longitude") + ylab("Latitude")
+  ggtitle("Map of South America")
+  theme_minimal()
+
+sa_map + 
+  annotation_scale()
+```
+
+## Define South America projections
+Three projections:
+  1. SR-ORG:7433: Gauss-Kruger Buenos Aires Reproyectado
+  2. Oblique Lambert azimuthal equal-area
+  3. SR-ORG:7570: MontevideoPrj For esri
+  
+```{r, results = FALSE, warning = FALSE}
+SA_GKBAR = "+proj=tmerc +lat_0=-34.629269 +lon_0=-58.4633 +k=0.9999980000000001 +x_0=100000 +y_0=100000 +ellps=intl +units=m +no_defs"
+SA_OLA = "+proj=laea +lon_0=-57.65625 +lat_0=-20.7777925 +datum=WGS84 +units=m +no_defs"
+SA_MV = "+proj=longlat +ellps=intl +no_defs"
+```
+
+### South America Projection - Gauss-Kruger Buenos Aires Reproyectado
+```{r, results = FALSE, warning = FALSE}
+sa_map_GKBAR <- ggplot(sa_countries) +
+  geom_sf() + 
+  coord_sf(crs = SA_GKBAR) +
+  theme_bw()
+
+sa_map_GKBAR
+```
+
+### South America Projection - Oblique Lambert azimuthal equal-area
+```{r, results = FALSE, warning = FALSE}
+sa_map_OLA <- ggplot(sa_countries) +
+  geom_sf() + 
+  coord_sf(crs = SA_OLA) +
+  theme_bw()
+
+sa_map_OLA
+```
+
+### South America Projection - MontevideoPrj For esri
+```{r, results = FALSE, warning = FALSE}
+sa_map_MV <- ggplot(sa_countries) +
+  geom_sf() + 
+  coord_sf(crs = SA_MV) +
+  theme_bw()
+
+sa_map_MV
+```
+
+### Transform coordinate system to m (Gauss-Kruger Buenos Aires Reproyectado)
+```{r, results = FALSE, warning = FALSE}
+sa_transformed <- sa_countries %>%
+  st_transform(crs = SA_GKBAR)
+```
+
+```{r, results = FALSE, warning = FALSE}
+ggplot(sa_transformed) +
+  geom_sf() +
+  theme_bw()
+```
+
+## South America - percent of population in urban areas
+For my variable data, I downloaded the World Bank's data on urban population as a percent of total population: https://data-worldbank-org.ezp-prod1.hul.harvard.edu/indicator/SP.URB.TOTL.IN.ZS
+
+Throughout my assignment, I'll refer to my dataset as "% urban population (2019)"
+
+```{r, results = FALSE, warning = FALSE}
+sa_urban <- read_csv("C:/Users/Kristy Henrich/Documents/GitHub/kristy_henrich-vis/World_Bank_Percent_Urban_Population.csv") %>% 
+               rename(country_name = "Country Name", urban_pop_19 = "2019")  %>% 
+               select(country_name, urban_pop_19)
+
+sa_countries_urban <- sa_transformed %>%
+  left_join(sa_urban, by = c("name_sort" = "country_name")) %>%
+  select(name_long, urban_pop_19)
+```
+
+### Plot % urban population as chloropleth map
+```{r, results = FALSE, warning = FALSE}
+ggplot(sa_countries_urban, aes(fill = urban_pop_19)) +
+  geom_sf(color = NA) +
+  scale_fill_viridis_c(
+    name = "% urban population (2019)",
+    breaks = seq(0, 100, by = 20),
+    labels = formatC(seq(0, 100, by = 20), 
+                     big.mark = ",", format = "f", digits = 0)) +
+  theme_map() +
+  theme(legend.background = element_blank())
+```
+
+### Plot % urban population as non-continuous cartogram 
+```{r, results = FALSE, warning = FALSE}
+urban_cartogram_ncont <- sa_countries_urban %>%
+  cartogram_ncont("urban_pop_19")
+
+ggplot(urban_cartogram_ncont, aes(fill = urban_pop_19)) +
+  geom_sf(color = NA) +
+  scale_fill_viridis_c(
+    name = "% urban population (2019)",
+    breaks = seq(0, 100, by = 20),
+    labels = formatC(seq(0, 100, by = 20), 
+                     big.mark = ",", format = "f", digits = 0)) +
+  theme_map() +
+  theme(legend.background = element_blank())
+```
+
+### Plot % urban population as proportional symbol map
+```{r, results = FALSE, warning = FALSE}
+urban_centeroids <- sa_countries_urban %>%
+  st_centroid()
+
+ggplot(sa_transformed) +
+  geom_sf(fill = NA, color = "gray") +
+  geom_sf(data = urban_centeroids, 
+          aes(size = urban_pop_19),
+          alpha = 0.5, color = "blue") +
+  scale_size_continuous(name = "% urban population (2019)",
+    breaks = seq(0, 100, by = 20),
+    labels = formatC(seq(0, 100, by = 20), 
+                     big.mark = ",", format = "f", digits = 0),
+    range = c(0, 10)) +
+  theme_void() 
+```
+
+
