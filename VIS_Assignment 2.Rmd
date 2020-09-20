@@ -45,50 +45,52 @@ sa_map +
 
 ## Define South America projections
 Three projections:
-  1. SR-ORG:7433: Gauss-Kruger Buenos Aires Reproyectado
-  2. Oblique Lambert azimuthal equal-area
-  3. SR-ORG:7570: MontevideoPrj For esri
+  1. SR-ORG:7208: MONREF97: Mongolia
+  2. Oblique Lambert azimuthal equal-area (appropriate projection according to spatialreference.org)
+  3. EPSG:3003: Monte Mario / Italy zone 1
   
 ```{r, results = FALSE, warning = FALSE}
-SA_GKBAR = "+proj=tmerc +lat_0=-34.629269 +lon_0=-58.4633 +k=0.9999980000000001 +x_0=100000 +y_0=100000 +ellps=intl +units=m +no_defs"
-SA_OLA = "+proj=laea +lon_0=-57.65625 +lat_0=-20.7777925 +datum=WGS84 +units=m +no_defs"
-SA_MV = "+proj=longlat +ellps=intl +no_defs"
+sa_mongolia = "+proj=tmerc +lat_0=0 +lon_0=105 +k=1 +x_0=500000 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+sa_ola = "+proj=laea +lon_0=-57.65625 +lat_0=-20.7777925 +datum=WGS84 +units=m +no_defs"
+sa_italy = "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl +units=m +no_defs"
 ```
 
-### South America Projection - Gauss-Kruger Buenos Aires Reproyectado
+### Projection of South America with Mongolia spatial reference
 ```{r, results = FALSE, warning = FALSE}
-sa_map_GKBAR <- ggplot(sa_countries) +
+sa_map_mongolia <- ggplot(sa_countries) +
   geom_sf() + 
-  coord_sf(crs = SA_GKBAR) +
+  coord_sf(crs = sa_mongolia) +
   theme_bw()
 
-sa_map_GKBAR
+sa_map_mongolia
 ```
 
-### South America Projection - Oblique Lambert azimuthal equal-area
+### Projection of South America with Oblique Lambert azimuthal equal-area 
+This projection is more appropriate for South America than the other two selected 
+
 ```{r, results = FALSE, warning = FALSE}
-sa_map_OLA <- ggplot(sa_countries) +
+sa_map_ola <- ggplot(sa_countries) +
   geom_sf() + 
-  coord_sf(crs = SA_OLA) +
+  coord_sf(crs = sa_ola) +
   theme_bw()
 
-sa_map_OLA
+sa_map_ola
 ```
 
-### South America Projection - MontevideoPrj For esri
+### Projection of South America with Greenland spatial reference
 ```{r, results = FALSE, warning = FALSE}
-sa_map_MV <- ggplot(sa_countries) +
+sa_map_italy <- ggplot(sa_countries) +
   geom_sf() + 
-  coord_sf(crs = SA_MV) +
+  coord_sf(crs = sa_italy) +
   theme_bw()
 
-sa_map_MV
+sa_map_italy
 ```
 
-### Transform coordinate system to m (Gauss-Kruger Buenos Aires Reproyectado)
+### Transform coordinate system to m (Oblique Lambert azimuthal equal-area)
 ```{r, results = FALSE, warning = FALSE}
 sa_transformed <- sa_countries %>%
-  st_transform(crs = SA_GKBAR)
+  st_transform(crs = sa_ola)
 ```
 
 ```{r, results = FALSE, warning = FALSE}
