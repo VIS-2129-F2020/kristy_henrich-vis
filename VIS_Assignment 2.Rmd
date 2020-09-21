@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Load libraries
-For this assignment, I relied heavily on Carole's tutorial and Taelor's assignment. I would like to be able to include country name labels on my maps to improve legibility, so I look forward to asking classmates for help on Monday. I also need to reposition one of my legends and would like help with this too
+For this assignment, I relied heavily on Carole's tutorial and Taelor's assignment. Alex inspired my use of some wonky projections and how to think about this in my coding, and Gemma also helped me reposition a legend on my map during our discussion on Monday, so thank you to Alex and Gemma!
 
 ```{r load libaries, results = FALSE, warning = FALSE}
 library(ggplot2)
@@ -77,7 +77,7 @@ sa_map_ola <- ggplot(sa_countries) +
 sa_map_ola
 ```
 
-### Projection of South America with Greenland spatial reference
+### Projection of South America with Italy spatial reference
 ```{r, results = FALSE, warning = FALSE}
 sa_map_italy <- ggplot(sa_countries) +
   geom_sf() + 
@@ -140,7 +140,8 @@ ggplot(urban_cartogram_ncont, aes(fill = urban_pop_19)) +
     labels = formatC(seq(0, 100, by = 20), 
                      big.mark = ",", format = "f", digits = 0)) +
   theme_map() +
-  theme(legend.background = element_blank())
+  theme(legend.background = element_blank(),legend.position="right", 
+        legend.title = element_text(size=9))
 ```
 
 ### Plot % urban population as proportional symbol map
