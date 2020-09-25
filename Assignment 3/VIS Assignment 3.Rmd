@@ -110,35 +110,36 @@ pct_polls_by_lib
 About 22% of unique polling locations are within 400 m of a public library
 
 ```{r}
-left_side  <- st_bbox(polls)$xmin
-top_side <- st_bbox(polls)$ymax
+left_side  <- st_bbox(lib)$xmin
+top_side <- st_bbox(lib)$ymax
 
-# ggplot(water) +
-#   geom_sf(fill = "lightblue", color = NA) +
-#   geom_sf(data = trees, size = 0.01,
-#           aes(color = by_lib)) +
-#   scale_color_manual(values = c("lightgreen", "darkgreen"),
-#           name = "Unique polling locations\nby distance to a public library", 
-#           labels = c("No public library within 400 m",
-#                      "Public library within 400 m")) +
-#   annotation_scale(location = "br") +
-#   annotation_north_arrow(location = "tr",
-#                          style = north_arrow_minimal()) +
-#   annotate(geom = "text", x = left_side, 
-#            y = top_side, 
-#            label = paste("Of the ", 
-#                          prettyNum(n_polls, big.mark = ","),
-#                          " polling locations\n", 
-#                          prettyNum(n_polls_by_lib, big.mark = ","),
-#                          " (", 
-#                          prettyNum(100*pct_polls_by_lib, digits = 0),
-#                          "%) are within 400\nmeters of a public library.",
-#                          sep = ""),
-#            hjust = 0, vjust = 0, size = 3) +
-#   theme_map() +
-#   theme(panel.background = element_rect(fill = "cornsilk1"),
-#         legend.background = element_rect(fill = alpha("white", 0.5), 
-#                                          color = "gray"))
+ggplot(nhoods) +
+  geom_sf(fill = "gray", color = NA) +
+  geom_sf(data = polls, size = 0.01,
+          aes(color = by_lib)) +
+  scale_color_manual(values = c("lightgreen", "darkgreen"),
+          name = "Unique polling locations\nby distance to a public library",
+          labels = c("No public library within 400 m",
+                     "Public library within 400 m")) +
+  annotation_scale(location = "br") +
+  annotation_north_arrow(location = "tr",
+                         style = north_arrow_minimal()) +
+  annotate(geom = "text", x = left_side,
+           y = top_side,
+           label = paste("Of the ",
+                         prettyNum(n_polls, big.mark = ","),
+                         " polling locations,\n",
+                         prettyNum(n_polls_by_lib, big.mark = ","),
+                         " (",
+                         prettyNum(100*pct_polls_by_lib, digits = 0),
+                         "%) are within 400\nmeters of a public library.",
+                         sep = ""),
+           hjust = 0, vjust = 0, size = 3) +
+  theme_map() +
+  theme(panel.background = element_rect(fill = "lightblue"),
+        legend.background = element_rect(fill = alpha("white", 0.5),
+                                         color = "gray"),
+        legend.position = c(.6, .1))
 ```
 
 
