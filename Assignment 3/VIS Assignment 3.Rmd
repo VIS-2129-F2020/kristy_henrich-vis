@@ -21,7 +21,7 @@ library(RColorBrewer)
 ```
 
 ## Download spatial data
-Data from data.boston.gov for:
+Data from data.boston.gov for:  
   1. neighborhood boundaries (shape)  
   2. voting precincts (shape)  
   3. polling locations (point)  
@@ -54,13 +54,15 @@ lib <- lib %>%
   st_transform(MA_state_plane)
 ```
 
-## Quick map
+## Quick map & annotations
+For this assignment, I used Carole's tutorial and Taelor's example assignment. Additionally, Alex helped me substantially with Figure 1
+
 ```{r}
 ggplot(nhoods) +
   geom_sf(fill = NA, color = "gray") +
   geom_sf(data = precincts, color = "lightblue") +
   geom_sf(data = polls, color = "blue", size = 0.01) +
-  geom_sf(data = lib, color = "yellow", size = 0.01) +
+  geom_sf(data = lib, color = "pink", size = 0.01) +
   theme_map() +
   annotation_scale()
 ```
@@ -232,19 +234,19 @@ ggplot(precincts) +
                                          color = "gray"))
 ```
 
-## Figure 5. Average number of A points in each C polygon
-Average number of public libraries in each neighborhood
+## Figure 5. Average density of A points in each C polygon
+Average density of public libraries in each neighborhood
 
 ```{r}
 nhoods <- nhoods %>%
-  mutate(num_pub_lib = lengths(st_covers(nhoods, lib)))
-```
+  mutate(num_lib = lengths(st_covers(nhoods, lib)))%>%
+  mutate(area = set_units(st_area(nhoods), .25*km^2)) %>%
+  mutate(lib_dens = as.numeric(num_lib / area))
 
-```{r}
 ggplot(nhoods) +
   geom_sf(color = NA, 
-          aes(fill = num_pub_lib)) +
-  scale_fill_viridis_c(name = "Boston neighborhoods by \nnumber of public libraries",
+          aes(fill = lib_dens)) +
+  scale_fill_viridis_c(name = "Boston neighborhoods by \npublic library density (every 1/4 km^2)",
                        breaks = breaks <- seq(0, 10, by = 1),
                        labels = paste(prettyNum(breaks, big.mark = ","),
                                       "libraries")) +
@@ -268,11 +270,10 @@ nhoods <- nhoods %>%
 ggplot(nhoods) +
   geom_sf(color = NA, 
           aes(fill = poll_dens)) +
-    scale_fill_viridis_c(name = 
-                           "Boston neighborhoods\nby polling location density") +
-                    #   breaks = breaks <- seq(0, 4000, by = 500),
-                    #   labels = paste(prettyNum(breaks, big.mark = ","),
-                    #                  "trees per square km")) +
+  scale_fill_viridis_c(name = "Boston neighborhoods\nby polling location density",
+                       breaks = breaks <- seq(0, 10, by = 1),
+                       labels = paste(prettyNum(breaks, big.mark = ","),
+                                "polls per square km")) +
   annotation_scale(location = "br") +
   annotation_north_arrow(location = "tr",
                          style = north_arrow_minimal()) +
