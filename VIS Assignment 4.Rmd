@@ -169,7 +169,7 @@ ggplot(iso_all_modes) +
 ```
 ## Calculate and control isochrone areas
 
-Note: Alex this is where I am having trouble with as.numeric
+When calculating isochrone areas, remove NULL data values 
 
 ```{r}
  iso_areas <- iso_all_modes %>%
@@ -177,16 +177,20 @@ Note: Alex this is where I am having trouble with as.numeric
    st_set_geometry(NULL) %>%
    pivot_wider(names_from = mode, values_from = area) 
 
+iso_areas <- iso_areas %>% 
+  filter(drive != "NULL", walk != "NULL") %>%
+  filter(str_detect(drive,"c")==FALSE)
+
 ggplot(iso_areas,
-       aes(x = as.numeric(walk), y = as.numeric(drive)))
+       aes(x = as.numeric(walk), y = as.numeric(drive))) +
   geom_point() +
   scale_x_continuous(name =
             "Area within a five-minute walking distance\nof a public school\n(square km)",
-            breaks = breaks <- seq(10000, 130000, by = 20000),
+            breaks = breaks <- seq(10000, 300000, by = 20000),
             labels = breaks / 1000000) +
   scale_y_continuous(name =
             "Area within a five-minute driving distance\nof a public school\n(square km)",
-            breaks = breaks <- seq(0, 700000, by = 100000),
+            breaks = breaks <- seq(0, 2000000, by = 100000),
             labels = breaks / 1000000) +
   theme_bw()
 ```
