@@ -16,6 +16,9 @@ library(tidyverse)
 library(sf)
 library(ggthemes)
 library(ggspatial)
+library(sp)
+library(stringr)
+library(rgeos)
 ```
 
 ## Load locations
@@ -65,19 +68,19 @@ path_otp <- paste(path_data, "otp.jar",sep = "/")
 otp_build_graph(otp = path_otp, dir = path_data, memory = 1024) 
 ```
 
-```{r}
+```{r, warning = FALSE, message = FALSE}
 otp_setup(otp = path_otp, dir = path_data, memory =1024)
 ```
 
 # Connect to opentripplanner
 
-```{r}
+```{r, warning = FALSE, message = FALSE}
 otpcon <- otp_connect()
 ```
 
 ## Create isochrones
 
-```{r}
+```{r, warning = FALSE, message = FALSE}
 iso_5min_walk <- 
   otp_isochrone(otpcon = otpcon, fromPlace = BOS_schools, 
                 mode = "WALK", cutoffSec = 300) %>%
@@ -95,53 +98,17 @@ iso_all_modes <- rbind(iso_5min_drive, iso_5min_walk)
 otp_stop()
 ```
 
-```{r}
+## Figure 1
+Map isochrones
+
+I used Carole's tutorial to create this figure
+
+```{r, warning = FALSE, message = FALSE}
 right_side <- st_bbox(iso_all_modes)$xmax
 left_side  <- st_bbox(iso_all_modes)$xmin
 top_side <- st_bbox(iso_all_modes)$ymax
 bottom_side <- st_bbox(iso_all_modes)$ymin
 
-ggplot(iso_all_modes) +
-  annotation_map_tile(zoomin = 0, progress = "none") +
-  geom_sf(aes(fill = mode), alpha = 0.5) +
-  geom_sf(data = BOS_schools) +
-  coord_sf(xlim = c(left_side, right_side), 
-           ylim = c(bottom_side, top_side), expand = FALSE) +
-  scale_fill_viridis_d(name = "Area that is reachable within 5 minutes",
-                       labels = c("By car", "By foot")) +
-  theme_map() +
-  labs(caption = "Basemap Copyright OpenStreetMap contributors")
-```
-
-```{r}
-ggplot(iso_all_modes) +
-  annotation_map_tile(zoomin = 0, type = "cartolight", progress = "none") +
-  geom_sf(aes(fill = mode), alpha = 0.5) +
-  geom_sf(data = BOS_schools) +
-  coord_sf(xlim = c(left_side, right_side), 
-           ylim = c(bottom_side, top_side), expand = FALSE) +
-  scale_fill_viridis_d(name = "Area that is reachable within 5 minutes",
-                       labels = c("By car", "By foot")) +
-  theme_map() +
-  labs(caption = "Basemap Copyright OpenStreetMap contributors")
-```
-
-```{r}
-ggplot(iso_all_modes) +
-  annotation_map_tile(zoomin = 0, type = "stamenwatercolor", 
-                      progress = "none") +
-  geom_sf(aes(fill = mode), alpha = 0.5) +
-  geom_sf(data = BOS_schools) +
-  coord_sf(xlim = c(left_side, right_side), 
-           ylim = c(bottom_side, top_side), expand = FALSE) +
-  scale_fill_discrete(name = "Area that is reachable within 5 minutes",
-                      labels = c("By car", "By foot"),
-                      type = c("gray", "black")) +
-  theme_map() +
-  labs(caption = "Basemap Copyright OpenStreetMap contributors")
-```
-
-```{r}
 ggplot(iso_all_modes) +
   annotation_map_tile(zoomin = 0, type = "hotstyle", 
                       progress = "none") +
@@ -156,22 +123,15 @@ ggplot(iso_all_modes) +
   labs(caption = "Basemap Copyright OpenStreetMap contributors")
 ```
 
-```{r}
-ggplot(iso_all_modes) +
-  geom_sf(data = bos_streets, color = "gray") +
-  geom_sf(aes(fill = mode), alpha = 0.5) +
-  geom_sf(data = BOS_schools) +
-  coord_sf(xlim = c(left_side, right_side), 
-           ylim = c(bottom_side, top_side), expand = FALSE) +
-  scale_fill_viridis_d(name = "Area that is reachable within 5 minutes",
-                       labels = c("By car", "By foot")) +
-  theme_map() 
-```
-## Calculate and control isochrone areas
+## Figure 2
 
-When calculating isochrone areas, remove NULL data values 
+Calculate the area of each isochrone and visualize the relationship between the size of a walkshed and the size of a driveshed via a scatter plot
 
-```{r}
+Remove NULL data values
+
+I used Carole's tutorial to create this figure
+
+```{r, warning = FALSE, message = FALSE}
  iso_areas <- iso_all_modes %>%
    mutate(area = st_area(iso_all_modes)) %>%
    st_set_geometry(NULL) %>%
@@ -196,6 +156,137 @@ ggplot(iso_areas,
 ```
 
 
+## Figure 3
+
+For figure 3, I was inspired by Whytne's maps and also used Alex's tutorial to look at public school accessibility across Boston by both walking and driving. I also switched to a 10 min walkshed and driveshed
+
+Load Boston neighborhoods
+
+```{r, warning = FALSE, message = FALSE}
+nhoods <- st_read("http://bostonopendata-boston.opendata.arcgis.com/datasets/3525b0ee6e6b427f9aab5d0a1d0a1a28_0.kml?outSR=%7B%22latestWkid%22%3A2249%2C%22wkid%22%3A102686%7D", quiet = TRUE) 
+```
+
+Transform the Boston neighborhoods object into a spatial object
+```{r, warning = FALSE, message = FALSE}
+nhoods1 <- as(nhoods, "Spatial")
+
+plot(nhoods1)
+```
+
+Create the many points around which will create isochrones
+
+```{r, warning = FALSE, message = FALSE}
+points <- spsample(nhoods1, n=1000, type='regular')
+
+plot(points)
+```
+
+For the points above, make a dataframe so that can use in isochrone analysis below
+```{r, warning = FALSE, message = FALSE}
+points <- st_as_sf(x = points,                         
+           coords = coords,
+           crs = 4326)
+```
+
+
+### Figure 3A
+
+Calculate the number of schools within a 10-minute walk for many points in Boston
+
+```{r, warning = FALSE, message = FALSE}
+otp_setup(otp = path_otp, dir = path_data, memory =1024)
+```
+
+```{r, warning = FALSE, message = FALSE}
+otpcon <- otp_connect()
+```
+
+```{r}
+iso_10min_walk <- 
+  otp_isochrone(otpcon = otpcon, fromPlace = points, 
+                mode = "WALK", cutoffSec = 600)
+```
+
+
+Count the number of schools in each 10min walkshed polygon
+```{r, warning = FALSE, message = FALSE}
+iso_10min_walk <- iso_10min_walk %>%
+  mutate(walk_score = lengths(st_covers(geometry, BOS_schools)))
+```
+
+Extract coordinates and number of schools in the polygon so that can plot only points with schools
+```{r, warning = FALSE, message = FALSE}
+out <- data.frame(str_split_fixed(iso_10min_walk$fromPlace, ",", 2))
+
+out <- st_as_sf(x = out,                         
+           coords = c("X2", "X1"),
+           crs = 4326)
+  
+out$walk_score <- iso_10min_walk$walk_score
+```
+
+Plot number of schools within a 10 min walk
+```{r}
+ggplot(nhoods) +
+  geom_sf(fill="NA", color="grey")+
+  geom_sf(data = out, aes(color=walk_score))+
+  scale_color_gradientn(name="Number of public schools\nwithin a 10 min walk", colors=c("red", "yellow", "green"))+
+  theme_map()+
+  theme(legend.position = c(.7,0),
+        plot.title = element_text(hjust = 0.5))+
+  labs(title = "Public School Acessibility by Foot")
+```
+
+
+
+
+### Figure 3B
+
+Calculate the number of schools within a ten-minute drive for many points in Boston
+
+```{r, warning = FALSE, message = FALSE}
+otp_setup(otp = path_otp, dir = path_data, memory =1024)
+```
+
+```{r, warning = FALSE, message = FALSE}
+otpcon <- otp_connect()
+```
+
+```{r}
+iso_10min_drive <- 
+  otp_isochrone(otpcon = otpcon, fromPlace = points, 
+                mode = "CAR", cutoffSec = 600)
+```
+
+
+Count the number of schools in each 10min driveshed polygon
+```{r, warning = FALSE, message = FALSE}
+iso_10min_drive <- iso_10min_drive %>%
+  mutate(drive_score = lengths(st_covers(geometry, BOS_schools)))
+```
+
+Extract coordinates and number of schools in the polygon so that can plot only points with schools
+```{r, warning = FALSE, message = FALSE}
+out <- data.frame(str_split_fixed(iso_10min_drive$fromPlace, ",", 2))
+
+out <- st_as_sf(x = out,                         
+           coords = c("X2", "X1"),
+           crs = 4326)
+  
+out$drive_score <- iso_10min_drive$drive_score
+```
+
+Plot number of schools within a 10 min drive
+```{r}
+ggplot(nhoods) +
+  geom_sf(fill="NA", color="grey")+
+  geom_sf(data = out, aes(color=drive_score))+
+  scale_color_gradientn(name="Number of public schools\nwithin a 10 min drive", colors=c("red", "yellow", "green"))+
+  theme_map()+
+  theme(legend.position = c(.7,0),
+        plot.title = element_text(hjust = 0.5))+
+  labs(title = "Public School Acessibility by Car")
+```
 
 
 
