@@ -1,0 +1,60 @@
+---
+title: "VIS Assignment 6"
+output: html_document
+---
+
+## Setup
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(htmltools)
+library(htmlwidgets)
+```
+
+## Read in data
+Section question: why can't i get it to mutate to acres?
+```{r}
+marine_areas <- st_read("https://opendata.arcgis.com/datasets/f5c62bc211c448058cd4bfbc4141a9de_39.kml") 
+ # mutate(acres = as.numeric(st_area(st_areashape)) / 4046.86)
+```
+
+## Display data on Leaflet map
+Question: why aren't my areas showing up as dark blue?
+
+### Make popup labels
+Note: will need to fix sq m to acres later
+Question: why aren't my popup values showing up?
+```{r}
+marine_areas$describe <- 
+  paste(marine_areas$Site_Label, "<br>", 
+               prettyNum(marine_areas$'st_area(shape)', 
+                         digits = 2), "sq m") %>% 
+  lapply(htmltools::HTML)
+```
+
+### Draw map
+```{r}
+marine_map <- leaflet(marine_areas) %>%
+  addProviderTiles(providers$CartoDB.Voyager) %>%
+  addPolygons(fillColor = "blue", stroke = FALSE,
+              highlightOptions = highlightOptions(fillColor="darkblue",
+                                                  fillOpacity = 1),
+              popup = ~describe) %>%
+  addControl("Marine Managed Areas of Hawaii", position = "topright") %>%
+  addControl('<a href="https://geoportal.hawaii.gov/datasets/marine-managed-areas-dar">Data source</a>', position = "bottomleft")
+
+marine_map
+```
+
+## Save as an HTML file
+```{r}
+saveWidget(marine_map, file = "marinemap.html")
+```
+
+
+
