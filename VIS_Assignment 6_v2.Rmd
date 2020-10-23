@@ -1,0 +1,67 @@
+---
+title: "VIS Assignment 6"
+output: html_document
+---
+
+## Setup
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(htmltools)
+library(htmlwidgets)
+```
+
+## Read in data
+Section question: why can't i get it to mutate to acres?
+```{r}
+zoning_districts <- st_read("https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&format=GeoJSON") 
+```
+
+### Draw map
+
+Questions for class:
+1. color palette
+2. zoom
+
+```{r}
+color_bins <- colorFactor(rainbow(6), zoning_districts$gen)
+
+# color_palette <- 
+#    colorFactor(palette = c("red", "gray", "purple", "purple", "blue", "yellow"), 
+#                levels = c("Commercial", "Industrial", "Mixed", "Mixed Use", "Public", "Residential"))
+
+zoning_map <- leaflet(zoning_districts) %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addPolygons(fillColor = color_bins(zoning_districts$gen), stroke = FALSE,
+              highlightOptions = highlightOptions(fillColor="pink",
+                                                  fillOpacity = 1),
+              label = zoning_districts$gen,
+              popup = zoning_districts$districtna) %>%
+  addControl("San Francisco Zoning Districts", position = "topright") %>%
+  addControl('<a href="https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&format=GeoJSON">Data source</a>', position = "bottomleft") %>%
+  
+  setMaxBounds( lng1 = -170,
+                lat1 = -65,
+                lng2 = 180,
+                lat2 = 80) %>%
+  
+  addLegend(pal = color_bins,
+             values = zoning_districts$gen,
+             title = "Zoning Type",
+            position = "topleft",
+            opacity = 0.5)
+
+zoning_map
+```
+
+## Save as an HTML file
+```{r}
+saveWidget(zoning_map, file = "zoningmap.html")
+```
+
+
