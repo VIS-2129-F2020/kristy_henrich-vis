@@ -40,11 +40,11 @@ marine_areas$describe <-
 ### Draw map
 ```{r}
 marine_map <- leaflet(marine_areas) %>%
-  addProviderTiles(providers$CartoDB.Voyager) %>%
+  addProviderTiles(providers$Stamen.Terrain) %>%
   addPolygons(fillColor = "blue", stroke = FALSE,
               highlightOptions = highlightOptions(fillColor="darkblue",
                                                   fillOpacity = 1),
-              popup = ~describe) %>%
+              popup = marine_areas$Site_Label) %>%
   addControl("Marine Managed Areas of Hawaii", position = "topright") %>%
   addControl('<a href="https://geoportal.hawaii.gov/datasets/marine-managed-areas-dar">Data source</a>', position = "bottomleft")
 
@@ -56,5 +56,5 @@ marine_map
 saveWidget(marine_map, file = "marinemap.html")
 ```
 
-
+Question: same push error as the first time I tried to use git
 
