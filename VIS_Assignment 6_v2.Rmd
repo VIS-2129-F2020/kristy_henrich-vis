@@ -17,38 +17,33 @@ library(htmlwidgets)
 ```
 
 ## Read in data
-Section question: why can't i get it to mutate to acres?
 ```{r}
 zoning_districts <- st_read("https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&format=GeoJSON") 
 ```
 
 ### Draw map
 
-Questions for class:
-1. color palette
-2. zoom
 
 ```{r}
-color_bins <- colorFactor(rainbow(6), zoning_districts$gen)
+color_bins <-
+   colorFactor(palette = c("red", "gray", "pink", "purple", "blue", "yellow"),
+               levels = c("Commercial", "Industrial", "Mixed", "Mixed Use", "Public", "Residential"))
 
-# color_palette <- 
-#    colorFactor(palette = c("red", "gray", "purple", "purple", "blue", "yellow"), 
-#                levels = c("Commercial", "Industrial", "Mixed", "Mixed Use", "Public", "Residential"))
-
-zoning_map <- leaflet(zoning_districts) %>%
+zoning_map <- leaflet(zoning_districts,
+                      options = leafletOptions(minZoom = 11, maxZoom = 15)) %>%
   addProviderTiles(providers$Stamen.TonerLite) %>%
   addPolygons(fillColor = color_bins(zoning_districts$gen), stroke = FALSE,
-              highlightOptions = highlightOptions(fillColor="pink",
+              highlightOptions = highlightOptions(fillColor="darkblue",
                                                   fillOpacity = 1),
               label = zoning_districts$gen,
               popup = zoning_districts$districtna) %>%
   addControl("San Francisco Zoning Districts", position = "topright") %>%
   addControl('<a href="https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&format=GeoJSON">Data source</a>', position = "bottomleft") %>%
   
-  setMaxBounds( lng1 = -170,
-                lat1 = -65,
-                lng2 = 180,
-                lat2 = 80) %>%
+  setMaxBounds( lng1 = -121.45,
+                lat1 = 37.15,
+                lng2 = -122.75,
+                lat2 = 38.25) %>%
   
   addLegend(pal = color_bins,
              values = zoning_districts$gen,
