@@ -23,14 +23,13 @@ zoning_districts <- st_read("https://data.sfgov.org/api/geospatial/3i4a-hu95?met
 
 ### Draw map
 
-
 ```{r}
 color_bins <-
    colorFactor(palette = c("red", "gray", "pink", "purple", "blue", "yellow"),
                levels = c("Commercial", "Industrial", "Mixed", "Mixed Use", "Public", "Residential"))
 
 zoning_map <- leaflet(zoning_districts,
-                      options = leafletOptions(minZoom = 11, maxZoom = 15)) %>%
+                      options = leafletOptions(minZoom = 11, maxZoom = 17)) %>%
   addProviderTiles(providers$Stamen.TonerLite) %>%
   addPolygons(fillColor = color_bins(zoning_districts$gen), stroke = FALSE,
               highlightOptions = highlightOptions(fillColor="darkblue",
