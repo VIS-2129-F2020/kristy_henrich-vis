@@ -44,13 +44,13 @@ child_weight <- read.csv("child_weight_london.csv")
 
 ```{r, message=FALSE, warning=FALSE}
 
-london_boroughs_weight <- merge(london_boroughs,child_weight,by="name")
-
+london_boroughs_weight <- left_join(london_boroughs,child_weight,by="name") %>%
+  mutate(healthy_weight_10_11 = case_when(is.na(healthy_weight_10_11) ~ round(mean(healthy_weight_10_11, na.rm = TRUE),1),
+                                          !is.na(healthy_weight_10_11) ~ healthy_weight_10_11))
 ```
 
 ## Chloropleth: Visualize differences among neighborhoods
 Add labels and colors to indicate the percent of children age 10-11 with healthy weight
-What to do about no data for city of london?
 
 ```{r, message=FALSE, warning=FALSE}
 london_boroughs_weight$label <- 
@@ -73,7 +73,7 @@ leaflet(london_boroughs_weight) %>%
   addLegend(pal = pal, 
             values = ~healthy_weight_10_11,
             bins = 3,
-            opacity = 0.7, title = "Percent of children age 10-11 with healthy weight",
+            opacity = 0.7, title = "Percent of children age <br> 10-11 with healthy weight",
             position = "bottomright")
 ```
 
@@ -97,7 +97,7 @@ leaflet(borough_points) %>%
   addLegend(pal = pal, 
             values = ~healthy_weight_10_11,
             bins = 3,
-            opacity = 0.7, title = "Percent of children age 10-11 with healthy weight",
+            opacity = 0.7, title = "Percent of children age <br> 10-11 with healthy weight",
             position = "bottomright")
 ```
 
@@ -135,7 +135,7 @@ leaflet(borough_points) %>%
   addLegend(pal = pal, 
             values = ~healthy_weight_10_11,
             bins = 3,
-            opacity = 0.7, title = "Percent of children age 10-11 with healthy weight",
+            opacity = 0.7, title = "Percent of children age <br> 10-11 with healthy weight",
             position = "bottomright")
 ```
 
@@ -147,7 +147,7 @@ These visualizations show the percent of children age 10-11 in London with a hea
 
 The second visualization, the centroids, provides some important visual cues. By assigning the data to a point, it may make it easier to clarify that the value is not static over a polygon. However, it may be misinterpreted that the point represents the value at that fixed spatial point.
 
-Finally, the third visualization, the heat map, interpolates to show how boundaries may be more porous. Additionally, it is easy to identify which areas of the city are hot or cold spots because the values are not confined to one per borough. A downside of this is that it may appear, for example, that a specific subsection of Richmond upon Thames is a hot spot when, in reality, this percent is for the entire borough. Additionally, since these percents are for children in a given borough, the interpolation does not necessarily represent valid data (e.g. it may be better to use interpolation when you have several data points of for percent of children with a healthy weight at different spatial points within the city or boroughs and want to interpolate to fill in the gaps). I feel that this visualization is most interesting because it helps a reader suss out overall hot and cold spots. 
+Finally, the third visualization, the heat map, interpolates to show how boundaries may be more porous. Additionally, it is easy to identify which areas of the city are hot or cold spots because the values are not confined to one per borough. A downside of this is that it may appear, for example, that a specific subsection of Richmond upon Thames is a cold spot when, in reality, this percent is for the entire borough. Additionally, since these percents are for children in a given borough, the interpolation does not necessarily represent valid data (e.g. it may be better to use interpolation when you have several data points of for percent of children with a healthy weight at different spatial points within the city or boroughs and want to interpolate to fill in the gaps). I feel that this visualization is most interesting because it helps a reader suss out overall hot and cold spots. 
 
 Finally, while I do think there are challenges with the chloropleth, I think this is the best given the data set and clarity of the image, as discussed above.
 
