@@ -1,0 +1,64 @@
+---
+title: "Creating an interactive map"
+author: "Kristy Henrich"
+output: 
+  html_document:
+    theme: lumen
+    toc: true
+    toc_float: true
+---
+
+Read in Zoning Districts data from DataSF (San Francisco Open Data). Map shows San Francisco's zoning categories by color and through pop-up labels. Specific zoning is indicated when clicking on the map.
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(htmltools)
+library(htmlwidgets)
+```
+
+```{r, results = 'hide'}
+zoning_districts <- st_read("https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&format=GeoJSON") 
+```
+
+
+
+```{r}
+color_bins <-
+   colorFactor(palette = c("red", "gray", "pink", "purple", "blue", "yellow"),
+               levels = c("Commercial", "Industrial", "Mixed", "Mixed Use", "Public", "Residential"))
+
+zoning_map <- leaflet(zoning_districts,
+                      options = leafletOptions(minZoom = 11, maxZoom = 17)) %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addPolygons(fillColor = color_bins(zoning_districts$gen), stroke = FALSE,
+              highlightOptions = highlightOptions(fillColor="darkblue",
+                                                  fillOpacity = 1),
+              label = zoning_districts$gen,
+              popup = zoning_districts$districtna) %>%
+  addControl("San Francisco Zoning Districts", position = "topright") %>%
+  addControl('<a href="https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&format=GeoJSON">Data source</a>', position = "bottomleft") %>%
+  
+  setMaxBounds( lng1 = -121.45,
+                lat1 = 37.15,
+                lng2 = -122.75,
+                lat2 = 38.25) %>%
+  
+  addLegend(pal = color_bins,
+             values = zoning_districts$gen,
+             title = "Zoning Type",
+            position = "topleft",
+            opacity = 0.5)
+
+zoning_map
+```
+
+```{r}
+saveWidget(zoning_map, file = "zoningmap.html")
+```
+
+
