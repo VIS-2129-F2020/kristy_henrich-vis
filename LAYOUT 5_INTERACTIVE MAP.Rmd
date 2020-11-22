@@ -58,6 +58,6 @@ zoning_map
 ```
 
 ```{r}
-saveWidget(zoning_map, file = "zoningmap.html")
+saveWidget(zoning_map, file = "sfzoningmap.html")
 ```
 

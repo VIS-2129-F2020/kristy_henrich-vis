@@ -9,7 +9,7 @@ output:
 ---
 ## Set up base map
 
-Acknowledgment: This assignment relied on code featured in Carole's tutorial.
+Acknowledgment: This assignment relied on code featured in Carole's tutorial. Data from London Datastore.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -158,5 +158,9 @@ Finally, the third visualization, the heat map, interpolates to show how boundar
 
 In summary, while it has some drawbacks, I think the chloropleth is the best given the data set and clarity of the image, as discussed above.
 
+
+```{r}
+saveWidget(london_boroughs_weight, file = "london.html")
+```
 
 
