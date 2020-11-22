@@ -61,4 +61,3 @@ zoning_map
 saveWidget(zoning_map, file = "zoningmap.html")
 ```
 
-
