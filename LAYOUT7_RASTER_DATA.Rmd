@@ -1,0 +1,168 @@
+---
+title: "Manipulating raster data with leaflet"
+author: "Kristy Henrich"
+output: 
+  html_document:
+    theme: lumen
+    toc: true
+    toc_float: true
+---
+## Set up base map
+
+Acknowledgment: This assignment relied on code featured in Carole's tutorial. Data from London Datastore.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(htmltools)
+library(htmlwidgets)
+library(raster)
+library(gstat)
+library(spatial)
+```
+
+Steps to set up base map for manipulating raster data in leaflet:   
+  1. Create map of London boroughs (shown below)    
+  2. Read in Excel file with percent of children with healthy weight by borough   
+  3. Add percent of children with healthy weight data to map of London boroughs   
+
+Raster data will be used when interpolating to form the heat map. The chloropleth and centroid maps are shown for comparison and discussion on the effectiveness of the different visualizations of the data set.
+
+```{r, message=FALSE, warning=FALSE}
+london_boroughs <- st_read("https://skgrange.github.io/www/data/london_boroughs.json", quiet = TRUE) %>%
+  dplyr::select(name)
+ 
+leaflet(london_boroughs) %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addPolygons(highlightOptions = highlightOptions(fillColor = "yellow",
+                                                  fillOpacity = 1),
+              label = ~name,
+              weight = 1)
+```
+
+```{r}
+child_weight <- read.csv("child_weight_london.csv")
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+
+london_boroughs_weight <- left_join(london_boroughs,child_weight,by="name") %>%
+  mutate(healthy_weight_10_11 = case_when(is.na(healthy_weight_10_11) ~ round(mean(healthy_weight_10_11, na.rm = TRUE),1),
+                                          !is.na(healthy_weight_10_11) ~ healthy_weight_10_11))
+```
+
+## Chloropleth: Visualize differences among neighborhoods
+Each borough is colored according to its assigned value. A pop up displays the neighborhood name and value.
+
+```{r, message=FALSE, warning=FALSE}
+london_boroughs_weight$label <- 
+  paste(london_boroughs_weight$name, "<br>", 
+        london_boroughs_weight$healthy_weight_10_11, "% of children age 10-11 with healthy weight") %>% 
+  lapply(htmltools::HTML)
+
+bins <- seq(min(london_boroughs_weight$healthy_weight_10_11),
+            max(london_boroughs_weight$healthy_weight_10_11), by = 1)
+pal <- colorNumeric("viridis", 
+                    domain = london_boroughs_weight$healthy_weight_10_11,
+                    na.color = "#00000000")
+
+chloropleth_map <- leaflet(london_boroughs_weight) %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addPolygons(highlightOptions = highlightOptions(fillOpacity = 1),
+              label = ~label,
+              fillColor = ~pal(healthy_weight_10_11),
+              weight = 1, color = "black") %>% 
+  addLegend(pal = pal, 
+            values = ~healthy_weight_10_11,
+            bins = 3,
+            opacity = 0.7, title = "Percent of children age <br> 10-11 with healthy weight",
+            position = "bottomright")
+
+chloropleth_map
+```
+
+## Centroid: Neighborhood-level rates as points
+Each borough is contains a point colored according to the borough's assigned value. A pop up displays the neighborhood name and value.
+
+```{r, warning=FALSE, message=FALSE}
+europe_proj <- "+proj=lcc +lat_1=35 +lat_2=65 +lat_0=52 +lon_0=10 +x_0=4000000 +y_0=2800000 +ellps=GRS80 +units=m +no_defs"
+
+WGS84 <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+
+borough_points <- st_centroid(
+  st_transform(london_boroughs_weight, crs = europe_proj)) %>%
+  st_transform(WGS84)
+
+leaflet(borough_points) %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addCircles(label = ~label,
+             fillColor = ~pal(healthy_weight_10_11),
+             stroke = FALSE, 
+             radius = 500, 
+             fillOpacity = 1) %>% 
+  addLegend(pal = pal, 
+            values = ~healthy_weight_10_11,
+            bins = 3,
+            opacity = 0.7, title = "Percent of children age <br> 10-11 with healthy weight",
+            position = "bottomright")
+```
+
+## Heat map: Interpolation
+The steps followed to create the heat map were as follows:    
+  1. Convert data for raster functions    
+  2. Create empty raster covering area of London with resolution of 10m   
+  3. Create raster showing variation in percent of children age 10-11 with healthy weight using inverse-distance weighting method. Clip raster to extents of borough   
+  4. Show raster layer on a map   
+```{r, message=FALSE, warning=FALSE}
+borough_pts_sp <- borough_points %>%
+  st_transform(europe_proj) %>%
+  as_Spatial()
+
+borough_poly_sp <- london_boroughs_weight %>%
+  st_transform(europe_proj) %>%
+  as_Spatial()
+```
+
+```{r, message=FALSE, warning=FALSE}
+london_raster <- raster(borough_poly_sp, res=10)
+```
+
+```{r, message=FALSE, warning=FALSE, results = 'hide'}
+gs <- gstat(formula=healthy_weight_10_11~1, locations=borough_pts_sp)
+idw_interp <- interpolate(london_raster, gs)
+
+idw_interp_clip <- mask(idw_interp, borough_poly_sp)
+```
+
+```{r, message=FALSE, warning=FALSE}
+leaflet(borough_points) %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addRasterImage(idw_interp_clip, colors = pal, opacity = 0.8) %>% 
+  addLegend(pal = pal, 
+            values = ~healthy_weight_10_11,
+            bins = 3,
+            opacity = 0.7, title = "Percent of children age <br> 10-11 with healthy weight",
+            position = "bottomright")
+```
+
+## Discussion
+These visualizations show the percent of children age 10-11 in London with a healthy weight by borough. The first visualization, the chloropleth, visually assigns the percent for that borough to the whole borough spatially. This figure provides visual clarity on the value for each borough. However, it leaves room for interpretation that the assigned value is the value for each spatial point in the borough, rather than the value for the borough as a whole. This figure is informative, and I think it is easy to understand the values broadly. This map seems to be be most appropriate to the data and interesting.
+
+The second visualization, the centroids, provides some important visual cues. By assigning the data to a point, it may make it easier to clarify that this is not the specific value at each point in the polygon. However, it may be misinterpreted that the point represents the value at that fixed spatial point rather than being an average for that borough polygon.
+
+Finally, the third visualization, the heat map, interpolates to show how boundaries may be more porous. It is easy to identify which areas of the city are hot or cold spots because the values are not confined to one per borough. A downside of this is that it may appear, for example, that a specific subsection of Richmond upon Thames is a cold spot when, in reality, this percent is for the entire borough. Additionally, since these percents are for children in a given borough, the interpolation does not necessarily represent valid data (e.g. it may be better to use interpolation when you have several data points of for percent of children with a healthy weight at different spatial points within the city or boroughs and want to interpolate to fill in the gaps). 
+
+In summary, while it has some drawbacks, I think the chloropleth is the best given the data set and clarity of the image, as discussed above.
+
+
+```{r}
+saveWidget(chloropleth_map, file = "chloropleth.html")
+```
+
+
