@@ -17,44 +17,45 @@ library(htmlwidgets)
 ```
 
 ## Read in data
-Section question: why can't i get it to mutate to acres?
 ```{r}
-marine_areas <- st_read("https://opendata.arcgis.com/datasets/f5c62bc211c448058cd4bfbc4141a9de_39.kml") 
- # mutate(acres = as.numeric(st_area(st_areashape)) / 4046.86)
-```
-
-## Display data on Leaflet map
-Question: why aren't my areas showing up as dark blue?
-
-### Make popup labels
-Note: will need to fix sq m to acres later
-Question: why aren't my popup values showing up?
-```{r}
-marine_areas$describe <- 
-  paste(marine_areas$Site_Label, "<br>", 
-               prettyNum(marine_areas$'st_area(shape)', 
-                         digits = 2), "sq m") %>% 
-  lapply(htmltools::HTML)
+zoning_districts <- st_read("https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&format=GeoJSON") 
 ```
 
 ### Draw map
+
 ```{r}
-marine_map <- leaflet(marine_areas) %>%
-  addProviderTiles(providers$Stamen.Terrain) %>%
-  addPolygons(fillColor = "blue", stroke = FALSE,
+color_bins <-
+   colorFactor(palette = c("red", "gray", "pink", "purple", "blue", "yellow"),
+               levels = c("Commercial", "Industrial", "Mixed", "Mixed Use", "Public", "Residential"))
+
+zoning_map <- leaflet(zoning_districts,
+                      options = leafletOptions(minZoom = 11, maxZoom = 17)) %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addPolygons(fillColor = color_bins(zoning_districts$gen), stroke = FALSE,
               highlightOptions = highlightOptions(fillColor="darkblue",
                                                   fillOpacity = 1),
-              popup = marine_areas$Site_Label) %>%
-  addControl("Marine Managed Areas of Hawaii", position = "topright") %>%
-  addControl('<a href="https://geoportal.hawaii.gov/datasets/marine-managed-areas-dar">Data source</a>', position = "bottomleft")
+              label = zoning_districts$gen,
+              popup = zoning_districts$districtna) %>%
+  addControl("San Francisco Zoning Districts", position = "topright") %>%
+  addControl('<a href="https://data.sfgov.org/api/geospatial/3i4a-hu95?method=export&format=GeoJSON">Data source</a>', position = "bottomleft") %>%
+  
+  setMaxBounds( lng1 = -121.45,
+                lat1 = 37.15,
+                lng2 = -122.75,
+                lat2 = 38.25) %>%
+  
+  addLegend(pal = color_bins,
+             values = zoning_districts$gen,
+             title = "Zoning Type",
+            position = "topleft",
+            opacity = 0.5)
 
-marine_map
+zoning_map
 ```
 
 ## Save as an HTML file
 ```{r}
-saveWidget(marine_map, file = "marinemap.html")
+saveWidget(zoning_map, file = "zoningmap.html")
 ```
 
-Question: same push error as the first time I tried to use git
 
