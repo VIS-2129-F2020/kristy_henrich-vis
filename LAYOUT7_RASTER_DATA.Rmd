@@ -72,12 +72,17 @@ pal <- colorNumeric("viridis",
                     domain = london_boroughs_weight$healthy_weight_10_11,
                     na.color = "#00000000")
 
-chloropleth_map <- leaflet(london_boroughs_weight) %>%
+chloropleth_map <- leaflet(london_boroughs_weight,
+                   options = leafletOptions(minZoom = 8, maxZoom = 18)) %>%
   addProviderTiles(providers$Stamen.TonerLite) %>%
   addPolygons(highlightOptions = highlightOptions(fillOpacity = 1),
               label = ~label,
               fillColor = ~pal(healthy_weight_10_11),
               weight = 1, color = "black") %>% 
+  setMaxBounds( lng1 = -0.19,
+                lat1 = 51.8,
+                lng2 = -0.00,
+                lat2 = 51.2) %>%
   addLegend(pal = pal, 
             values = ~healthy_weight_10_11,
             bins = 3,
